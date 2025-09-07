@@ -1,0 +1,50 @@
+name: Build macOS ARM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac-arm:
+
+    runs-on: macos-14
+
+    steps:
+
+    - uses: actions/checkout@v4
+      with:
+            submodules: 'recursive'
+
+    - name: Cache Homebrew packages
+      uses: actions/cache@v4
+      env:
+        cache-name: homebrew
+      with:
+        path: ~/Library/Caches/Homebrew
+        key: ${{ runner.os }}-arm-build-${{ env.cache-name }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-arm-build-${{ env.cache-name }}-
+          ${{ runner.os }}-arm-build-
+          ${{ runner.os }}-arm-
+
+    - name: Install dependencies
+      run:  brew install freeglut mesa harfbuzz 
+      
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.7.2'
+        modules: 'all'
+        cache: true
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        chmod +x build_mac.sh
+        MAKE_PARALLEL=$(sysctl -n hw.logicalcpu) ./build_mac.sh
+        mv sioyek-release-mac.zip sioyek-release-mac-arm.zip
+        
+    - name: upload mac artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-arm-uploads
+        path: sioyek-release-mac-arm.zip
