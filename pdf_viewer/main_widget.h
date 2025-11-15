@@ -524,6 +524,7 @@ public:
     void invalidate_render();
     void invalidate_ui();
     void open_document(const Path& path, std::optional<float> offset_x = {}, std::optional<float> offset_y = {}, std::optional<float> zoom_level = {});
+    void open_document(const std::wstring& path, std::optional<float> offset_x = {}, std::optional<float> offset_y = {}, std::optional<float> zoom_level = {});
     void open_document_with_hash(const std::string& hash, std::optional<float> offset_x = {}, std::optional<float> offset_y = {}, std::optional<float> zoom_level = {});
     void open_document_at_location(const Path& path, int page, std::optional<float> x_loc, std::optional<float> y_loc, std::optional<float> zoom_level);
     void open_document(const DocumentViewState& state);
@@ -701,6 +702,10 @@ public:
     std::deque<std::pair<QTime, QPoint>> position_buffer;
     float velocity_x = 0;
     float velocity_y = 0;
+
+    // we stop the smooth move after moving this amount
+    std::optional<float> smooth_y_move_amount;
+
     bool is_velocity_fixed = false;
 
     // are we scrolling due to the mouse moving to the screen edge while selecting text?
@@ -1005,7 +1010,7 @@ public:
     AbsoluteDocumentPos get_mouse_abspos();
     void move_selected_bookmark_to_mouse_cursor();
     bool handle_annotation_move_finish();
-    void set_fixed_velocity(float vel_y, float vel_x);
+    void set_fixed_velocity(float vel_y, float vel_x, std::optional<float> y_move_amount={});
     QMenuBar* create_main_menu_bar();
     void create_menu_from_menu_node(QMenu* parent, MenuNode* items, std::unordered_map<std::string, std::vector<std::string>>& command_key_mappings);
     void delete_menu_nodes(MenuNode* items);

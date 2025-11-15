@@ -249,6 +249,8 @@ extern std::wstring MIDDLE_LEFT_RECT_HOLD_COMMAND;
 extern std::wstring MIDDLE_RIGHT_RECT_TAP_COMMAND;
 extern std::wstring MIDDLE_RIGHT_RECT_HOLD_COMMAND;
 
+extern std::wstring PERIODIC_COMMANDS;
+
 extern UIRect PORTRAIT_EDIT_PORTAL_UI_RECT;
 extern UIRect LANDSCAPE_EDIT_PORTAL_UI_RECT;
 
@@ -1181,6 +1183,12 @@ MainWidget::MainWidget(fz_context* mupdf_context,
                 persist();
             }
         }
+        if (!PERIODIC_COMMANDS.empty()){
+            QStringList periodic_commands = QString::fromStdWString(PERIODIC_COMMANDS).split(";");
+            for (const auto& cmd : periodic_commands) {
+                execute_macro_if_enabled(cmd.toStdWString());
+            }
+        }
 
         cleanup_expired_pending_portals();
         if (TOUCH_MODE && selection_begin_indicator) {
@@ -1396,7 +1404,7 @@ std::wstring MainWidget::get_status_string(bool is_right) {
         status_string.replace("%{chapter_name}", " [ " + QString::fromStdWString(chapter_name) + " ] ");
     }
 
-    if (SHOW_DOCUMENT_NAME_IN_STATUSBAR) {
+    if (status_string.indexOf("%{document_name}") != -1) {
         std::optional<std::wstring> file_name = Path(main_document_view->get_document()->get_path()).filename();
         if (file_name) {
             status_string.replace("%{document_name}", " [ " + QString::fromStdWString(file_name.value()) + " ] ");
@@ -1604,6 +1612,7 @@ void MainWidget::handle_escape() {
         }
     }
 
+    smooth_y_move_amount = {};
     clear_selection_indicators();
     typing_location = {};
     if (pending_command_instance) {
@@ -1715,6 +1724,20 @@ void MainWidget::validate_render() {
         float secs = current_time.msecsTo(last_speed_update_time) / 1000.0f;
         float move_x = secs * velocity_x;
         float move_y = secs * velocity_y;
+
+        if (smooth_y_move_amount.has_value()){
+            float before_y_move_amount = smooth_y_move_amount.value();
+            if (std::abs(move_y) >= std::abs(smooth_y_move_amount.value())) {
+                move_y = -before_y_move_amount;
+            }
+            smooth_y_move_amount = before_y_move_amount + move_y;
+
+            if (std::abs(smooth_y_move_amount.value()) < 0.01f) {
+                smooth_y_move_amount = {};
+                velocity_y = 0;
+            }
+        }
+
         if (horizontal_scroll_locked) {
             move_x = 0;
         }
@@ -1998,7 +2021,10 @@ void MainWidget::adjust_two_page_mode_document_zoom_and_offset(std::wstring doc_
 }
 
 void MainWidget::open_document(const Path& path, std::optional<float> offset_x, std::optional<float> offset_y, std::optional<float> zoom_level) {
+    return open_document(path.get_path(), offset_x, offset_y, zoom_level);
+}
 
+void MainWidget::open_document(const std::wstring& path, std::optional<float> offset_x, std::optional<float> offset_y, std::optional<float> zoom_level) {
     opengl_widget->clear_all_selections();
 
     //save the previous document state
@@ -2011,7 +2037,7 @@ void MainWidget::open_document(const Path& path, std::optional<float> offset_x, 
     }
 
     main_document_view->on_view_size_change(main_window_width, main_window_height);
-    main_document_view->open_document(path.get_path(), &this->is_render_invalidated);
+    main_document_view->open_document(path, &this->is_render_invalidated);
     adjust_two_page_mode_document_zoom_and_offset(doc()->get_path());
 
     if (doc()) {
@@ -2021,19 +2047,25 @@ void MainWidget::open_document(const Path& path, std::optional<float> offset_x, 
 
     bool has_document = main_document_view_has_document();
 
+
+    // derive file_name from full path
+    QString file_name = QString::fromStdWString(path);
+    QFileInfo file_info(file_name);
+    file_name = file_info.fileName();
+
     if (has_document) {
         //setWindowTitle(QString::fromStdWString(path.get_path()));
-        if (path.filename().has_value()) {
-            setWindowTitle(QString::fromStdWString(path.filename().value()));
+        if (file_name.size() > 0) {
+            setWindowTitle(file_name);
         }
         else {
-            setWindowTitle(QString::fromStdWString(path.get_path()));
+            setWindowTitle(QString::fromStdWString(path));
         }
 
     }
 
-    if ((path.get_path().size() > 0) && (!has_document)) {
-        show_error_message(L"Could not open file1: " + path.get_path());
+    if ((path.size() > 0) && (!has_document)) {
+        show_error_message(L"Could not open file1: " + path);
     }
 
     if (offset_x) {
@@ -5524,7 +5556,7 @@ void MainWidget::advance_command(std::unique_ptr<Command> new_command, std::wstr
                 std::wstring file_name;
                 std::optional<QString> root_dir = pending_command_instance->get_file_path_requirement_root_dir();
                 if (next_requirement.type == RequirementType::File) {
-                    file_name = select_command_file_name(pending_command_instance->get_name(), root_dir);
+                    file_name = select_command_file_name(pending_command_instance->get_pending_name(), root_dir);
                 }
                 else{
                     file_name = select_command_folder_name(root_dir);
@@ -11058,12 +11090,17 @@ bool MainWidget::handle_annotation_move_finish(){
     return false;
 }
 
-void MainWidget::set_fixed_velocity(float vel_y, float vel_x) {
+void MainWidget::set_fixed_velocity(float vel_y, float vel_x, std::optional<float> y_move_amount) {
     velocity_y = vel_y;
     velocity_x = vel_x;
     is_velocity_fixed = true;
+
+    smooth_y_move_amount = y_move_amount;
+    last_speed_update_time = QTime::currentTime();
+
     if (vel_y == 0 && vel_x == 0) {
         is_velocity_fixed = false;
+        smooth_y_move_amount = {};
         if (validation_interval_timer->interval() == 0){
             validation_interval_timer->setInterval(INTERVAL_TIME);
         }

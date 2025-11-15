@@ -30,6 +30,7 @@ bool SHOW_STATUSBAR_ONLY_WHEN_MOUSE_OVER = false;
 float PERSISTANCE_PERIOD = -1.0f;
 float TEXT_SELECTION_MINIMUM_DISTANCE = 5;
 bool SCROLL_PAST_DOCUMENT_ENDS = true;
+bool HORIZONTAL_SCROLL_PAST_PAGE_ENDS = false;
 bool SIMPLIFY_FREEHAND_DRAWINGS = true;
 bool RECTO_VERSO_ADJUSTMENT = false;
 
@@ -67,6 +68,8 @@ std::wstring PAPER_SEARCH_URL = L"https://search.fatcat.wiki/fatcat_release/_sea
 std::wstring PAPER_SEARCH_URL_PATH = L"hits.hits[]._source.best_pdf_url";
 std::wstring PAPER_SEARCH_TILE_PATH = L"hits.hits[]._source.title";
 std::wstring PAPER_SEARCH_CONTRIB_PATH = L"hits.hits[]._source.contrib_names";
+
+std::wstring PERIODIC_COMMANDS = L"";
 
 std::wstring MIDDLE_CLICK_SEARCH_ENGINE = L"s";
 std::wstring SHIFT_MIDDLE_CLICK_SEARCH_ENGINE = L"l";
@@ -137,6 +140,7 @@ std::wstring STATUS_FONT_FACE_NAME = L"";
 std::wstring DEFAULT_OPEN_FILE_PATH = L"";
 std::wstring ANNOTATIONS_DIR_PATH = L"";
 bool SHOULD_LOAD_TUTORIAL_WHEN_NO_OTHER_FILE = true;
+bool OPEN_LAST_FILE_ON_STARTUP = true;
 bool SHOULD_LAUNCH_NEW_INSTANCE = false;
 bool SHOULD_LAUNCH_NEW_WINDOW = false;
 bool SHOULD_DRAW_UNRENDERED_PAGES = false;
@@ -961,6 +965,7 @@ ConfigManager::ConfigManager(const Path& default_path, const Path& auto_path, co
     add_bool(L"paper_download_should_detect_paper_name", &PAPER_DOWNLOAD_AUTODETECT_PAPER_NAME);
     add_bool(L"automatically_download_matching_paper_name", &AUTOMATICALLY_DOWNLOAD_MATCHING_PAPER_NAME);
     add_bool(L"should_load_tutorial_when_no_other_file", &SHOULD_LOAD_TUTORIAL_WHEN_NO_OTHER_FILE);
+    add_bool(L"open_last_file_on_startup", &OPEN_LAST_FILE_ON_STARTUP);
     add_bool(L"should_launch_new_instance", &SHOULD_LAUNCH_NEW_INSTANCE);
     add_bool(L"should_launch_new_window", &SHOULD_LAUNCH_NEW_WINDOW);
     add_bool(L"should_draw_unrendered_pages", &SHOULD_DRAW_UNRENDERED_PAGES);
@@ -1025,6 +1030,7 @@ ConfigManager::ConfigManager(const Path& default_path, const Path& auto_path, co
     add_bool(L"always_copy_selected_text", &ALWAYS_COPY_SELECTED_TEXT);
     add_bool(L"show_statusbar_only_when_hovered", &SHOW_STATUSBAR_ONLY_WHEN_MOUSE_OVER);
     add_bool(L"scroll_past_document_ends", &SCROLL_PAST_DOCUMENT_ENDS);
+    add_bool(L"horizontal_scroll_past_page_ends", &HORIZONTAL_SCROLL_PAST_PAGE_ENDS);
     add_bool(L"uniform_page_widths", &SAME_WIDTH);
     add_bool(L"simplify_freehand_drawings", &SIMPLIFY_FREEHAND_DRAWINGS);
     add_bool(L"recto_verso_adjustment", &RECTO_VERSO_ADJUSTMENT);
@@ -1052,6 +1058,7 @@ ConfigManager::ConfigManager(const Path& default_path, const Path& auto_path, co
     add_string(L"paper_download_url_path", &PAPER_SEARCH_URL_PATH);
     add_string(L"paper_download_title_path", &PAPER_SEARCH_TILE_PATH);
     add_string(L"paper_download_contrib_path", &PAPER_SEARCH_CONTRIB_PATH);
+    add_string(L"periodic_commands", &PERIODIC_COMMANDS);
     add_string(L"default_open_file_path", &DEFAULT_OPEN_FILE_PATH);
     add_string(L"annotations_directory", &ANNOTATIONS_DIR_PATH);
     add_string(L"status_bar_format", &STATUS_BAR_FORMAT);

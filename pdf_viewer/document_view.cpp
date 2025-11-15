@@ -25,6 +25,7 @@ extern float HIDE_SYNCTEX_HIGHLIGHT_TIMEOUT;
 extern int PAGE_PADDINGS;
 extern bool SAME_WIDTH;
 extern bool SCROLL_PAST_DOCUMENT_ENDS;
+extern bool HORIZONTAL_SCROLL_PAST_PAGE_ENDS;
 extern bool RECTO_VERSO_ADJUSTMENT;
 
 DocumentView::DocumentView(DatabaseManager* db_manager,
@@ -288,10 +289,17 @@ void DocumentView::set_offset_x(float new_offset_x) {
 
 void DocumentView::set_offset_y(float new_offset_y) {
     if (is_two_page_mode()) {
+        int num_pages = current_document->num_pages();
+        float halfscreen_offset = !SCROLL_PAST_DOCUMENT_ENDS ? view_height / 2 / zoom_level : 0;
+        int actual_num_pages = (num_pages + 1) / 2;
+        float max_y_offset = max_virtual_y - halfscreen_offset;
+
         AbsoluteDocumentPos current = get_offsets();
         current.y = new_offset_y;
         VirtualPos new_pos = absolute_to_virtual_pos(current);
         offset.y = new_pos.y;
+        offset.y = std::max(halfscreen_offset, offset.y);
+        offset.y = std::min(offset.y, max_y_offset);
     }
     else {
         set_offsets(get_offset_x(), new_offset_y);
@@ -1216,7 +1224,7 @@ void DocumentView::set_page_offset(int new_offset) {
 
 float DocumentView::get_max_valid_x(bool relenting) {
     float page_width = current_document->get_page_width(get_center_page_number());
-    if (!relenting){
+    if (!relenting && !HORIZONTAL_SCROLL_PAST_PAGE_ENDS){
         return std::abs(-view_width / zoom_level / 2 + page_width / 2);
     }
     else{
@@ -1226,7 +1234,7 @@ float DocumentView::get_max_valid_x(bool relenting) {
 
 float DocumentView::get_min_valid_x(bool relenting) {
     float page_width = current_document->get_page_width(get_center_page_number());
-    if (!relenting){
+    if (!relenting && !HORIZONTAL_SCROLL_PAST_PAGE_ENDS){
         return -std::abs(-view_width / zoom_level / 2 + page_width / 2);
     }
     else{

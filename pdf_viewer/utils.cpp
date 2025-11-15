@@ -73,6 +73,7 @@ extern std::wstring PAPER_SEARCH_TILE_PATH;
 extern std::wstring PAPER_SEARCH_CONTRIB_PATH;
 extern std::wstring UI_FONT_FACE_NAME;
 extern std::wstring STATUS_FONT_FACE_NAME;
+extern bool OPEN_LAST_FILE_ON_STARTUP;
 
 extern bool VERBOSE;
 
@@ -329,9 +330,7 @@ void show_error_message(const std::wstring& error_message) {
 }
 
 std::wstring utf8_decode(const std::string& encoded_str) {
-    std::wstring res;
-    utf8::utf8to32(encoded_str.begin(), encoded_str.end(), std::back_inserter(res));
-    return res;
+    return QString::fromUtf8(encoded_str).toStdWString();
 }
 
 std::string utf8_encode(const std::wstring& decoded_str) {
@@ -1228,10 +1227,18 @@ void open_web_url(const std::wstring& url_string) {
 
 
 void search_custom_engine(const std::wstring& search_string, const std::wstring& custom_engine_url) {
+    QString search_string_url_encoded = QUrl::toPercentEncoding(QString::fromStdWString(search_string));
+    QString search_url;
+    if (custom_engine_url.find(L"%{search_pattern}") != std::wstring::npos) {
+        search_url = QString::fromStdWString(custom_engine_url);
+        search_url.replace("%{search_pattern}", search_string_url_encoded);
+    }
+    else {
+        search_url = QString::fromStdWString(custom_engine_url) + search_string_url_encoded;
+    }
 
     if (search_string.size() > 0) {
-        QString qurl_string = QString::fromStdWString(custom_engine_url + search_string);
-        open_web_url(qurl_string);
+        open_web_url(search_url);
     }
 }
 
@@ -4439,6 +4446,8 @@ bool is_platform_control_pressed(QKeyEvent* kevent){
 }
 
 std::vector<std::wstring> get_last_opened_file_name() {
+    if (!OPEN_LAST_FILE_ON_STARTUP) return {};
+
     static bool is_cached = false;
     static std::vector<std::wstring> cached_result = {};
 
